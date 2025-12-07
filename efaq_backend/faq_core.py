@@ -1,7 +1,7 @@
 from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.memory import ConversationBufferWindowMemory
 import os
 from dotenv import load_dotenv
@@ -28,12 +28,12 @@ def get_chain():
 
     logger.info("Loading embeddings model...")
     try:
-        # Use smallest lightweight embeddings model (~22MB vs 33MB)
-        # This saves ~100MB memory at runtime
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v1",
-            # Cache model to disk to avoid redownloading
-            cache_folder="./models"
+        # Use OpenAI embeddings - ultra lightweight, no torch/transformers needed!
+        # This eliminates 835MB+ of dependencies
+        embeddings = OpenAIEmbeddings(
+            openai_api_base="https://openrouter.ai/api/v1",
+            openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+            model="text-embedding-3-small"  # Lightweight embedding model
         )
     except Exception as e:
         logger.error(f"Failed to load embeddings: {e}")
