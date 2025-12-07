@@ -17,10 +17,10 @@ langchain-huggingface==0.1.0  # Replace deprecated HuggingFaceEmbeddings
 # Vector Store (FAISS CPU)
 faiss-cpu==1.11.0.post1
 
-# Embeddings - LIGHTWEIGHT (HuggingFaceEmbeddings with ONNX backend)
+# Embeddings - LIGHTWEIGHT (HuggingFaceEmbeddings)
+# sentence-transformers includes onnxruntime as dependency
 huggingface-hub==0.32.3
 sentence-transformers==5.0.0
-onnxruntime==1.18.0  # Compatible with Python 3.10
 
 # LLM interaction (OpenAI API compatible, for OpenRouter)
 openai==1.97.0
