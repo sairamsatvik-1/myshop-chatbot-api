@@ -53,23 +53,35 @@ async def chat(request: Request):
         if not question:
             return JSONResponse({"answer": "Ask me something!"}, status_code=400)
 
+        # Simple greeting shortcut
         if question.lower() in ["hi", "hello", "hey"]:
             return {"answer": "Hello! How can I assist you today?"}
 
-        # ✅ Correct call for ConversationalRetrievalChain
-        result = qa_chain.invoke({"question": question})
+        # ✅ For langchain 0.3.x, prefer direct call instead of .invoke
+        result = qa_chain({"question": question})
 
-        # ✅ Extract only the answer from the dict
+        # Log once on server to understand structure (only visible in Render logs)
+        logger.info(f"Raw QA chain result: {result!r}")
+
+        raw_answer = ""
+
         if isinstance(result, dict):
-            raw_answer = result.get("answer") or ""
-        else:
+            # Try common keys in order
+            for key in ["answer", "result", "output_text"]:
+                val = result.get(key)
+                if isinstance(val, str) and val.strip():
+                    raw_answer = val
+                    break
+
+        # Fallback: if still empty, just dump the whole result
+        if not raw_answer.strip():
             raw_answer = str(result)
 
-        # fallback if somehow empty
-        if not raw_answer.strip():
-            raw_answer = "I couldn't find a clear answer for that yet."
-
         answer = clean_answer(raw_answer)
+
+        # Final fallback if even after cleaning it's empty
+        if not answer.strip():
+            answer = "I couldn't find a clear answer in my FAQ for that. Please contact MyShop support."
 
         gc.collect()
         return {"answer": answer}
@@ -80,6 +92,7 @@ async def chat(request: Request):
             {"answer": "Sorry, something went wrong on the server."},
             status_code=500,
         )
+
 
 
 @app.get("/health")
