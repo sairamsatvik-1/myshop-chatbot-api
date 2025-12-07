@@ -2,12 +2,13 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferWindowMemory
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 from dotenv import load_dotenv
 import logging
 import warnings
 
-# Suppress any remaining deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 logger = logging.getLogger(__name__)
@@ -18,69 +19,77 @@ load_dotenv()
 def get_chain():
     """
     Initialize the chat chain with memory-efficient settings
-
-    Key optimizations:
-    1. ConversationBufferWindowMemory - Only keeps last N messages (bounded)      
-    2. Lightweight embeddings model - all-MiniLM-L6-v2 (33MB)
-    3. Single-worker uvicorn - Reduces total memory footprint
+    using OpenRouter embeddings + FAISS (rebuilt at startup).
     """
 
+    # 1. Load documents (your FAQ / policy PDF)
+    logger.info("Loading documents...")
+    # 👉 change this path to your actual PDF
+    pdf_path = "docs/myshop-faq.pdf"
+    loader = PyPDFLoader(pdf_path)
+    docs = loader.load()
+
+    # 2. Split into chunks
+    logger.info("Splitting documents...")
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=200,
+    )
+    chunks = splitter.split_documents(docs)
+
+    # 3. Embeddings (OpenRouter via OpenAIEmbeddings)
     logger.info("Loading embeddings model...")
     try:
-        # Use OpenAI embeddings - ultra lightweight, no torch/transformers needed!
-        # This eliminates 835MB+ of dependencies
         embeddings = OpenAIEmbeddings(
             openai_api_base="https://openrouter.ai/api/v1",
             openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="text-embedding-3-small"  # Lightweight embedding model
+            model="text-embedding-3-small",  # keep this consistent
         )
     except Exception as e:
         logger.error(f"Failed to load embeddings: {e}")
-        raise    logger.info("Loading FAISS vector store...")
-    try:
-        # Load FAISS vector database
-        db = FAISS.load_local(
-            "vectorstore/",
-            embeddings,
-            allow_dangerous_deserialization=True
-        )
-        retriever = db.as_retriever()
-    except Exception as e:
-        logger.error(f"Failed to load FAISS index: {e}")
         raise
 
+    # 4. Build FAISS index in memory (NO load_local)
+    logger.info("Building FAISS vector store...")
+    try:
+        db = FAISS.from_documents(chunks, embeddings)
+        retriever = db.as_retriever()
+    except Exception as e:
+        logger.error(f"Failed to build FAISS index: {e}")
+        raise
+
+    # 5. LLM via OpenRouter
     logger.info("Initializing LLM...")
     try:
-        # Initialize LLM with OpenRouter (free tier available)
         llm = ChatOpenAI(
             openai_api_base="https://openrouter.ai/api/v1",
             openai_api_key=os.getenv("OPENROUTER_API_KEY"),
             model="mistralai/mistral-7b-instruct:free",
             temperature=0,
-            request_timeout=30,  # Prevent hanging requests
+            request_timeout=30,
         )
     except Exception as e:
         logger.error(f"Failed to initialize LLM: {e}")
         raise
 
+    # 6. Bounded memory (last 5 messages)
     logger.info("Setting up memory management...")
-    # IMPORTANT: Use ConversationBufferWindowMemory instead of ConversationBufferMemory
-    # This keeps only the last K messages, preventing unbounded memory growth     
     memory = ConversationBufferWindowMemory(
         memory_key="chat_history",
         return_messages=True,
-        k=5,  # Keep only last 5 messages - adjust based on your needs
+        k=5,
         human_prefix="User",
-        ai_prefix="Assistant"
+        ai_prefix="Assistant",
     )
 
+    # 7. ConversationalRetrievalChain
     logger.info("Creating retrieval chain...")
     try:
         chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=retriever,
             memory=memory,
-            verbose=False  # Set to False in production to reduce logging overhead    
+            verbose=False,
         )
         logger.info("Chat chain created successfully")
         return chain
