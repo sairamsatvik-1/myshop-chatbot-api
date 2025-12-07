@@ -54,15 +54,19 @@ async def chat(request: Request):
         if question.lower() in ["hi", "hello", "hey"]:
             return {"answer": "Hello! How can I assist you today?"}
 
-        raw_answer = qa_chain.invoke(question)
-        answer = clean_answer(raw_answer)
+        # LCEL returns dict {question, answer, chat_history}
+        result = qa_chain.invoke({"question": question})
+        answer = clean_answer(result.get("answer", ""))
 
         gc.collect()
         return {"answer": answer}
 
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
-        return JSONResponse({"answer": "Sorry, something went wrong."}, status_code=500)
+        return JSONResponse(
+            {"answer": "Sorry, something went wrong."},
+            status_code=500,
+        )
 
 
 @app.get("/health")
