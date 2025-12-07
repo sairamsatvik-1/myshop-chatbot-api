@@ -6,7 +6,7 @@ import os
 import gc
 import logging
 from contextlib import asynccontextmanager
-from efaq_backend.faq_core_optimized import get_chain
+from efaq_backend.faq_core import get_chain
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
