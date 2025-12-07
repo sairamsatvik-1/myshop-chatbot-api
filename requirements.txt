@@ -12,6 +12,7 @@ langchain==0.3.26
 langchain-community==0.3.27
 langchain-core==0.3.69
 langchain-text-splitters==0.3.8
+langchain-huggingface==0.1.0  # Replace deprecated HuggingFaceEmbeddings
 
 # Vector Store (FAISS CPU)
 faiss-cpu==1.11.0.post1

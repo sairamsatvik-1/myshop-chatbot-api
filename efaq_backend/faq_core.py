@@ -1,14 +1,14 @@
 from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.memory import ConversationBufferWindowMemory
 import os
 from dotenv import load_dotenv
 import logging
 import warnings
 
-# Suppress deprecation warnings
+# Suppress any remaining deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 logger = logging.getLogger(__name__)
