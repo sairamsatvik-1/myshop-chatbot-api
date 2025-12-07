@@ -2,8 +2,6 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferWindowMemory
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 from dotenv import load_dotenv
 import logging
@@ -16,49 +14,36 @@ logging.getLogger("langchain").setLevel(logging.ERROR)
 
 load_dotenv()
 
+
 def get_chain():
     """
-    Initialize the chat chain with memory-efficient settings
-    using OpenRouter embeddings + FAISS (rebuilt at startup).
+    Load FAISS vectorstore (built offline) + OpenRouter LLM.
+    No PDF loading on Render. Just reuse the saved index.
     """
 
-    # 1. Load documents (your FAQ / policy PDF)
-    logger.info("Loading documents...")
-    # 👉 change this path to your actual PDF
-    pdf_path = "docs/myshop-faq.pdf"
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-
-    # 2. Split into chunks
-    logger.info("Splitting documents...")
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=200,
-    )
-    chunks = splitter.split_documents(docs)
-
-    # 3. Embeddings (OpenRouter via OpenAIEmbeddings)
     logger.info("Loading embeddings model...")
     try:
         embeddings = OpenAIEmbeddings(
             openai_api_base="https://openrouter.ai/api/v1",
             openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-            model="text-embedding-3-small",  # keep this consistent
+            model="text-embedding-3-small",
         )
     except Exception as e:
         logger.error(f"Failed to load embeddings: {e}")
         raise
 
-    # 4. Build FAISS index in memory (NO load_local)
-    logger.info("Building FAISS vector store...")
+    logger.info("Loading FAISS vector store...")
     try:
-        db = FAISS.from_documents(chunks, embeddings)
+        db = FAISS.load_local(
+            "vectorstore",
+            embeddings,
+            allow_dangerous_deserialization=True,
+        )
         retriever = db.as_retriever()
     except Exception as e:
-        logger.error(f"Failed to build FAISS index: {e}")
+        logger.error(f"Failed to load FAISS index: {e}")
         raise
 
-    # 5. LLM via OpenRouter
     logger.info("Initializing LLM...")
     try:
         llm = ChatOpenAI(
@@ -72,7 +57,6 @@ def get_chain():
         logger.error(f"Failed to initialize LLM: {e}")
         raise
 
-    # 6. Bounded memory (last 5 messages)
     logger.info("Setting up memory management...")
     memory = ConversationBufferWindowMemory(
         memory_key="chat_history",
@@ -82,7 +66,6 @@ def get_chain():
         ai_prefix="Assistant",
     )
 
-    # 7. ConversationalRetrievalChain
     logger.info("Creating retrieval chain...")
     try:
         chain = ConversationalRetrievalChain.from_llm(
