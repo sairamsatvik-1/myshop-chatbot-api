@@ -20,8 +20,38 @@ faiss-cpu==1.11.0.post1
 # Embeddings - LIGHTWEIGHT (HuggingFaceEmbeddings with ONNX backend)
 huggingface-hub==0.32.3
 sentence-transformers==5.0.0
-# REMOVE torch - use onnxruntime instead
-onnxruntime==1.19.0  # 10x smaller than torch (~50MB vs 2GB+)
+onnxruntime==1.18.0  # Compatible with Python 3.10
+
+# LLM interaction (OpenAI API compatible, for OpenRouter)
+openai==1.97.0
+
+# Pydantic & its core dependencies
+pydantic==2.11.7
+pydantic-settings==2.10.1
+pydantic_core==2.33.2
+annotated-types==0.7.0
+
+# Environment Variable Loading
+python-dotenv==1.1.1
+
+# Essential Numerical Libraries (minimal versions)
+numpy==1.26.4
+scipy==1.10.1
+
+# Other dependencies (optimized for size)
+tenacity==9.1.2
+requests==2.32.3
+urllib3==2.2.3
+certifi==2024.8.30
+idna==3.10
+packaging==24.2
+pyparsing==3.2.0
+
+# Optional: For memory monitoring (useful in production)
+psutil==6.1.0
+
+# For faster JSON handling
+orjson==3.10.12
 
 # LLM interaction (OpenAI API compatible, for OpenRouter)
 openai==1.97.0
