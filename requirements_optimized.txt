@@ -1,0 +1,54 @@
+# Core FastAPI and ASGI Server
+fastapi==0.115.14
+uvicorn[standard]==0.35.0
+uvloop==0.21.0  # Faster event loop (10-25% performance improvement)
+starlette==0.46.2
+h11==0.14.0
+sniffio==1.3.1
+anyio==4.7.0
+
+# LangChain Core
+langchain==0.3.26
+langchain-community==0.3.27
+langchain-core==0.3.69
+langchain-text-splitters==0.3.8
+
+# Vector Store (FAISS CPU)
+faiss-cpu==1.11.0.post1
+
+# Embeddings - LIGHTWEIGHT (HuggingFaceEmbeddings with ONNX backend)
+huggingface-hub==0.32.3
+sentence-transformers==5.0.0
+# REMOVE torch - use onnxruntime instead
+onnxruntime==1.19.0  # 10x smaller than torch (~50MB vs 2GB+)
+
+# LLM interaction (OpenAI API compatible, for OpenRouter)
+openai==1.97.0
+
+# Pydantic & its core dependencies
+pydantic==2.11.7
+pydantic-settings==2.10.1
+pydantic_core==2.33.2
+annotated-types==0.7.0
+
+# Environment Variable Loading
+python-dotenv==1.1.1
+
+# Essential Numerical Libraries (minimal versions)
+numpy==1.26.4
+scipy==1.10.1
+
+# Other dependencies (optimized for size)
+tenacity==9.1.2
+requests==2.32.3
+urllib3==2.2.3
+certifi==2024.8.30
+idna==3.10
+packaging==24.2
+pyparsing==3.2.0
+
+# Optional: For memory monitoring (useful in production)
+psutil==6.1.0
+
+# For faster JSON handling
+orjson==3.10.12
